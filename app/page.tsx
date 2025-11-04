@@ -89,7 +89,7 @@ export default function Home() {
         </div>
 
         <div className='mb-4 p-3 bg-gray-800 rounded border border-gray-700 flex items-center justify-between text-sm'>
-          <span className='text-gray-400'>Last Updated:</span>
+          <span className='text-gray-400'>Last Updated</span>
           <span className='text-cyan-300 font-semibold'>
             {formatTime(data.lastUpdated)}
           </span>
@@ -195,15 +195,11 @@ export default function Home() {
               <textarea
                 readOnly
                 value={generateRawMatrix(data.items)}
-                className='w-full h-40 bg-gray-800 text-gray-300 p-3 rounded border border-gray-700 font-mono text-xs'
+                className='w-full h-40 bg-gray-800 text-gray-300 p-3 rounded border border-gray-700 font-mono text-xs resize-none'
               />
             </div>
           </>
         )}
-
-        <p className='text-center text-xs text-gray-500 mt-8'>
-          Data from Vercel Blob • Real-time updates
-        </p>
       </div>
     </div>
   )
