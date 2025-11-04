@@ -1,0 +1,29 @@
+name: Fetch data every 5 minutes
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call fetch data endpoint
+        env:
+          APP_BASE_URL: ${{ secrets.APP_BASE_URL }}
+          AUTH_CODE: ${{ secrets.AUTH_CODE }}
+        run: |
+          set -eu
+          if [ -z "${APP_BASE_URL:-}" ]; then
+            echo "Missing APP_BASE_URL secret (e.g. https://your-app.vercel.app)" >&2
+            exit 1
+          fi
+          if [ -z "${AUTH_CODE:-}" ]; then
+            echo "Missing AUTH_CODE secret" >&2
+            exit 1
+          fi
+          # Adjust the endpoint path if needed
+          URL="${APP_BASE_URL%/}/api/poll-gaggle?code=${AUTH_CODE}"
+          echo "Requesting: $URL"
+          curl -fsSL --max-time 25 "$URL"

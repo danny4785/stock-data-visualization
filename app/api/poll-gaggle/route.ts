@@ -73,8 +73,16 @@ function parseEmailBody(body: string) {
     .filter(Boolean)
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const authCode = process.env.AUTH_CODE
+    const url = new URL(request.url)
+    const code = url.searchParams.get('code')
+
+    if (authCode && code !== authCode) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const messageId = await fetchLatestMessageId()
     const messageBody = await fetchLatestMessageBody(messageId)
 
