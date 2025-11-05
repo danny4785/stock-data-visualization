@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 
+const DIRECT_API_CALL = true // Set to false to use storage-based approach
+
 interface MatrixRow {
   symbol: string
   timeframe: string
@@ -52,7 +54,8 @@ export default function Home() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const res = await fetch('/api/data')
+        const apiEndpoint = DIRECT_API_CALL ? '/api/gaggle-direct' : '/api/data'
+        const res = await fetch(apiEndpoint)
         if (res.ok) {
           const result = await res.json()
           setData(result)
