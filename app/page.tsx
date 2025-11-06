@@ -1,15 +1,51 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
+import {
+  Line,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+  ComposedChart
+} from 'recharts'
 
-const DIRECT_API_CALL = true // Set to false to use storage-based approach
+const DIRECT_API_CALL = true
+const MAX_MESSAGES = 10
 
-interface MatrixRow {
+interface MessageItem {
+  sent: string
+  price: number
+  levels: number[]
+  messageId: string
+}
+
+interface SymbolTimeframeData {
   symbol: string
   timeframe: string
-  price: number
-  count: number
-  levels: number[]
+  items: MessageItem[]
+}
+
+interface ApiResponse {
+  items: Array<{
+    symbol: string
+    timeframe: string
+    price: number
+    count: number
+    levels: number[]
+  }>
+  lastUpdated: string | null
+  messageId: string | null
+  sent: string | null
+}
+
+function adjustToUserTimezone(date: Date): Date {
+  const userTimezoneOffset = date.getTimezoneOffset() * 60000
+  const utcTimestamp = date.getTime() - userTimezoneOffset
+  return new Date(utcTimestamp)
 }
 
 function formatTime(dateString: string | null) {
@@ -30,7 +66,15 @@ function formatTime(dateString: string | null) {
   }
 }
 
-function generateRawMatrix(items: MatrixRow[]) {
+function generateRawMatrix(
+  items: Array<{
+    symbol: string
+    timeframe: string
+    price: number
+    count: number
+    levels: number[]
+  }>
+) {
   return items
     .map(
       (row) =>
@@ -44,10 +88,18 @@ function generateRawMatrix(items: MatrixRow[]) {
 }
 
 export default function Home() {
-  const [data, setData] = useState<{
-    items: MatrixRow[]
-    lastUpdated: string | null
-  }>({ items: [], lastUpdated: null })
+  const [data, setData] = useState<SymbolTimeframeData[]>([])
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null)
+  const [latestMessageData, setLatestMessageData] = useState<
+    Array<{
+      symbol: string
+      timeframe: string
+      price: number
+      count: number
+      levels: number[]
+    }>
+  >([])
+  const seenMessageIdsRef = useRef<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [copied, setCopied] = useState(false)
 
@@ -57,8 +109,67 @@ export default function Home() {
         const apiEndpoint = DIRECT_API_CALL ? '/api/gaggle-direct' : '/api/data'
         const res = await fetch(apiEndpoint)
         if (res.ok) {
-          const result = await res.json()
-          setData(result)
+          const result: ApiResponse = await res.json()
+
+          setLatestMessageData(result.items)
+          setLastUpdated(result.lastUpdated)
+          if (
+            result.messageId &&
+            !seenMessageIdsRef.current.has(result.messageId) &&
+            result.sent
+          ) {
+            seenMessageIdsRef.current.add(result.messageId)
+
+            setData((prevData) => {
+              const messageId = result.messageId!
+              
+              const messageIdExists = prevData.some((symbolData) =>
+                symbolData.items.some((item) => item.messageId === messageId)
+              )
+
+              if (messageIdExists) {
+                return prevData
+              }
+
+              const newData = [...prevData]
+              result.items.forEach((item) => {
+                const existingIndex = newData.findIndex(
+                  (d) =>
+                    d.symbol === item.symbol && d.timeframe === item.timeframe
+                )
+
+                const messageItem: MessageItem = {
+                  sent: result.sent!,
+                  price: item.price,
+                  levels: item.levels,
+                  messageId: messageId
+                }
+
+                if (existingIndex >= 0) {
+                  const hasDuplicate = newData[existingIndex].items.some(
+                    (existingItem) =>
+                      existingItem.messageId === messageItem.messageId
+                  )
+
+                  if (!hasDuplicate) {
+                    newData[existingIndex].items.push(messageItem)
+
+                    if (newData[existingIndex].items.length > MAX_MESSAGES) {
+                      newData[existingIndex].items.shift()
+                    }
+                  }
+                } else {
+                  newData.push({
+                    symbol: item.symbol,
+                    timeframe: item.timeframe,
+                    items: [messageItem]
+                  })
+                }
+              })
+
+              return newData
+            })
+          }
         }
       } catch (error) {
         console.log('[v0] Fetch error:', error)
@@ -73,120 +184,200 @@ export default function Home() {
   }, [])
 
   const copyRawData = async () => {
-    const rawText = generateRawMatrix(data.items)
+    const rawText = generateRawMatrix(latestMessageData)
     await navigator.clipboard.writeText(rawText)
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }
 
   return (
-    <div className='min-h-screen bg-linear-to-br from-gray-950 to-gray-900 text-white p-4 font-mono'>
-      <div className='max-w-7xl mx-auto'>
-        <div className='mb-6'>
-          <h1 className='text-3xl font-bold text-center mb-1 text-cyan-400'>
-            TradeStation Matrix Live
+    <div className='min-h-screen bg-linear-to-br from-gray-950 to-gray-900 text-white p-2 font-mono'>
+      <div className='max-w-6xl mx-auto'>
+        {/* Header */}
+        <div className='mb-8'>
+          <h1 className='text-4xl font-bold text-center mb-2 text-cyan-400'>
+            Levels Forecast Data Matrix
           </h1>
-          <p className='text-center text-gray-500 text-xs'>
+          <p className='text-center text-gray-400 text-sm'>
             Real-time market data • Auto-refresh every 30s
           </p>
         </div>
 
-        <div className='mb-4 p-3 bg-gray-800 rounded border border-gray-700 flex items-center justify-between text-sm'>
-          <span className='text-gray-400'>Last Updated</span>
+        {/* Last Updated */}
+        <div className='mb-8 p-4 bg-gray-800/50 rounded-lg border border-gray-700 flex items-center justify-between'>
+          <span className='text-gray-400'>Last Updated:</span>
           <span className='text-cyan-300 font-semibold'>
-            {formatTime(data.lastUpdated)}
+            {formatTime(lastUpdated)}
           </span>
         </div>
 
         {loading ? (
-          <div className='text-center py-12'>
-            <p className='text-gray-400'>Loading data...</p>
+          <div className='text-center py-16'>
+            <p className='text-gray-400 text-lg'>Loading data...</p>
           </div>
-        ) : data.items.length === 0 ? (
-          <div className='text-center py-12'>
+        ) : data.length === 0 ? (
+          <div className='text-center py-16 bg-gray-800/30 rounded-lg border border-gray-700'>
             <p className='text-gray-400'>
               Waiting for latest email from TradeStation...
             </p>
-            <p className='text-xs text-gray-500 mt-2'>
+            <p className='text-xs text-gray-500 mt-3'>
               Polling every 2 mins • Display updates every 30s
             </p>
           </div>
         ) : (
           <>
-            <div className='overflow-x-auto mb-8 rounded-lg border border-gray-700'>
-              <table className='w-full text-sm'>
-                <thead>
-                  <tr className='bg-gray-800 border-b border-gray-700'>
-                    <th className='px-3 py-2 text-left font-semibold text-cyan-400 w-12'>
-                      Symbol
-                    </th>
-                    <th className='px-3 py-2 text-left font-semibold text-cyan-400 w-16'>
-                      Timeframe
-                    </th>
-                    <th className='px-3 py-2 text-right font-semibold text-cyan-400 w-20'>
-                      Price
-                    </th>
-                    <th className='px-3 py-2 text-center font-semibold text-cyan-400 w-20'>
-                      Count
-                    </th>
-                    <th className='px-3 py-2 text-right font-semibold text-cyan-400 flex-1'>
-                      Levels
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.items.map((row: MatrixRow, i: number) => (
-                    <tr
-                      key={i}
-                      className='border-b border-gray-700 hover:bg-gray-800/50 transition-colors'
-                    >
-                      <td className='px-3 py-2 font-bold text-cyan-300'>
-                        {row.symbol}
-                      </td>
-                      <td className='px-3 py-2 text-gray-300 text-xs'>
-                        {row.timeframe}
-                      </td>
-                      <td className='px-3 py-2 text-right font-semibold text-white'>
-                        {row.price.toFixed(2)}
-                      </td>
-                      <td className='px-3 py-2 text-center'>
-                        <span
-                          className={`inline-block font-bold px-2 py-1 rounded text-xs ${
-                            row.count < 0
-                              ? 'bg-red-600 text-red-100'
-                              : 'bg-green-600 text-green-100'
-                          }`}
-                        >
-                          {row.count > 0 ? '↑' : '↓'}{' '}
-                          {Math.abs(row.count).toFixed(0)}
+            <div className='space-y-2 mb-10'>
+              {data.map((row: SymbolTimeframeData, i: number) => {
+                const chartData = row.items.map((item) => {
+                  const sentDate = new Date(item.sent)
+                  const adjustedDate = adjustToUserTimezone(sentDate)
+                  const timeLabel = adjustedDate.toLocaleString('en-US', {
+                    month: 'short',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                  })
+
+                  return {
+                    sent: timeLabel,
+                    sentFull: item.sent,
+                    price: item.price,
+                    level1: item.levels[0] || 0,
+                    level2: item.levels[1] || 0,
+                    level3: item.levels[2] || 0,
+                    level4: item.levels[3] || 0
+                  }
+                })
+
+                const allValues = chartData.flatMap((d) => [
+                  d.price,
+                  d.level1,
+                  d.level2,
+                  d.level3,
+                  d.level4
+                ])
+                const minValue = Math.min(...allValues)
+                const yAxisMin = (minValue * 2) / 3
+
+                return (
+                  <div
+                    key={`${row.symbol}-${row.timeframe}-${i}`}
+                    className='border border-gray-700 rounded-lg overflow-hidden bg-gray-800/20 hover:bg-gray-800/40 transition-colors'
+                  >
+                    <div className='grid grid-cols-12 gap-4 p-4 items-center border-b border-gray-700'>
+                      <div className='col-span-3'>
+                        <span className='font-bold text-cyan-300 text-sm'>
+                          {row.symbol}
                         </span>
-                      </td>
-                      <td className='px-3 py-2'>
-                        <div className='flex gap-2 justify-end'>
-                          {row.levels.map((lvl: number, j: number) => (
-                            <span
-                              key={j}
-                              className='text-gray-300 text-xs px-2 py-1 bg-gray-700/50 rounded'
-                            >
-                              {lvl.toFixed(2)}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                      </div>
+                      <div className='col-span-3'>
+                        <span className='text-gray-300 text-sm'>
+                          {row.timeframe}
+                        </span>
+                      </div>
+                      <div className='col-span-6'>
+                        <span className='text-gray-400 text-xs'>
+                          Messages: {row.items.length}/{MAX_MESSAGES}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className='bg-gray-900/40 pt-4 pb-2'>
+                      <ResponsiveContainer width='100%' height={400}>
+                        <ComposedChart
+                          data={chartData}
+                          margin={{ top: 20, right: 20, left: 0, bottom: 10 }}
+                          barCategoryGap={0}
+                        >
+                          <CartesianGrid
+                            strokeDasharray='3 3'
+                            stroke='#374151'
+                          />
+                          <XAxis
+                            dataKey='sent'
+                            tick={{ fill: '#9CA3AF', fontSize: 10 }}
+                            height={40}
+                          />
+                          <YAxis
+                            tick={{ fill: '#9CA3AF', fontSize: 10 }}
+                            width={60}
+                            tickFormatter={(value) => value.toFixed(0)}
+                            tickCount={12}
+                            domain={[yAxisMin, 'auto']}
+                          />
+                          <Tooltip
+                            contentStyle={{
+                              backgroundColor: '#1F2937',
+                              border: '1px solid #4B5563',
+                              borderRadius: '6px',
+                              padding: '8px'
+                            }}
+                            labelStyle={{ color: '#E5E7EB' }}
+                            formatter={(value: number, name: string) => {
+                              if (name === 'price' || name === 'Price') {
+                                return [value.toFixed(2), 'Price']
+                              }
+                              return [
+                                value.toFixed(2),
+                                `Level ${name.slice(-1)}`
+                              ]
+                            }}
+                          />
+                          <Legend
+                            wrapperStyle={{ paddingTop: '5px', paddingBottom: '5px' }}
+                            iconType='line'
+                          />
+                          <Bar
+                            dataKey='level1'
+                            fill='#3B82F6'
+                            name='Level 1'
+                            barSize={18}
+                          />
+                          <Bar
+                            dataKey='level2'
+                            fill='#8B5CF6'
+                            name='Level 2'
+                            barSize={18}
+                          />
+                          <Bar
+                            dataKey='level3'
+                            fill='#EC4899'
+                            name='Level 3'
+                            barSize={18}
+                          />
+                          <Bar
+                            dataKey='level4'
+                            fill='#F59E0B'
+                            name='Level 4'
+                            barSize={18}
+                          />
+                          <Line
+                            type='monotone'
+                            dataKey='price'
+                            stroke='#22D3EE'
+                            strokeWidth={1}
+                            dot={{ fill: '#22D3EE', r: 4 }}
+                            name='Price'
+                            isAnimationActive={false}
+                          />
+                        </ComposedChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
 
-            <div className='mt-8 pt-6 border-t border-gray-700'>
-              <div className='flex justify-between items-center mb-3'>
-                <h2 className='text-sm font-semibold text-gray-300'>
-                  Raw Data Matrix
+            {/* Raw Data - Latest Email Only */}
+            <div className='mt-10 pt-6 border-t border-gray-700'>
+              <div className='flex justify-between items-center mb-4'>
+                <h2 className='text-lg font-semibold text-gray-300'>
+                  Latest Email Data
                 </h2>
                 <button
                   onClick={copyRawData}
-                  className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                  className={`px-4 py-2 rounded text-xs font-medium transition-colors ${
                     copied
                       ? 'bg-green-600 text-white'
                       : 'bg-cyan-600 hover:bg-cyan-700 text-white'
@@ -197,8 +388,8 @@ export default function Home() {
               </div>
               <textarea
                 readOnly
-                value={generateRawMatrix(data.items)}
-                className='w-full h-40 bg-gray-800 text-gray-300 p-3 rounded border border-gray-700 font-mono text-xs resize-none'
+                value={generateRawMatrix(latestMessageData)}
+                className='w-full h-40 bg-gray-800 text-gray-300 p-4 rounded border border-gray-700 font-mono text-xs resize-none'
               />
             </div>
           </>

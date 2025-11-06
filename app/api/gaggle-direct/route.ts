@@ -11,7 +11,7 @@ const headers = {
   Accept: 'application/json'
 }
 
-async function fetchLatestMessageId() {
+async function fetchLatestMessage() {
   const res = await fetch(
     `https://api.gaggle.email/api/v3/group/${GAGGLE_GROUP_EMAIL}/messages?limit=1`,
     { headers }
@@ -25,7 +25,7 @@ async function fetchLatestMessageId() {
   }
 
   const json = await res.json()
-  return json?.[0]?.messageId
+  return json?.[0]
 }
 
 async function fetchLatestMessageBody(messageId: string) {
@@ -81,12 +81,17 @@ function parseEmailBody(body: string) {
 
 export async function GET() {
   try {
-    const messageId = await fetchLatestMessageId()
+    const message = await fetchLatestMessage()
+    const messageId = message?.messageId
+    const sent = message?.sent
+
     const messageBody = await fetchLatestMessageBody(messageId)
 
     const items = parseEmailBody(messageBody)
     const data = {
+      messageId,
       items,
+      sent,
       lastUpdated: Date.now()
     }
 
@@ -94,9 +99,14 @@ export async function GET() {
   } catch (error: any) {
     console.error('[Gaggle Direct API] Error:', error)
     return NextResponse.json(
-      { error: error.message, items: [], lastUpdated: null },
+      {
+        error: error.message,
+        items: [],
+        lastUpdated: null,
+        messageId: null,
+        sent: null
+      },
       { status: 500 }
     )
   }
 }
-
