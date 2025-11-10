@@ -246,7 +246,7 @@ export default function Home() {
         ) : (
           <>
             {/* Raw Data - Latest Email Only */}
-            <div className="mt-10 pt-6 border-t border-gray-700">
+            <div className="mt-5 mb-5 pt-6 border-t border-gray-700">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold text-gray-300">
                   Latest Email Data
