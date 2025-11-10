@@ -216,7 +216,7 @@ export default function Home() {
             Levels Forecast Data Matrix
           </h1>
           <p className="text-center text-gray-400 text-sm">
-            Real-time market data • Auto-refresh every 30s
+            Real-time market data • Auto-refresh every 5s
           </p>
         </div>
 
@@ -240,12 +240,12 @@ export default function Home() {
               Waiting for latest email from TradeStation...
             </p>
             <p className="text-xs text-gray-500 mt-3">
-              Polling every 2 mins • Display updates every 30s
+              Display updates every 5s
             </p>
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-10">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 mb-10">
               {data.map((row: SymbolTimeframeData, i: number) => {
                 const chartData = row.items.map((item) => {
                   const sentDate = new Date(item.sent);
