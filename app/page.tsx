@@ -18,8 +18,8 @@ const DIRECT_API_CALL = true;
 interface MessageItem {
   sent: string;
   price: number;
+  count: number;
   levels: number[];
-  count?: number;
   messageId: string;
 }
 
@@ -144,8 +144,8 @@ export default function Home() {
                 const messageItem: MessageItem = {
                   sent: result.sent!,
                   price: item.price,
-                  levels: item.levels,
                   count: item.count,
+                  levels: item.levels,
                   messageId: messageId,
                 };
 
@@ -228,23 +228,6 @@ export default function Home() {
               {formatTime(lastUpdated)}
             </span>
           </div>
-
-          {/* <div className="flex items-center space-x-3">
-            <label htmlFor="max-messages" className="text-gray-400 text-sm">
-              Max Messages
-            </label>
-            <select
-              id="max-messages"
-              value={maxMessages}
-              onChange={(e) => setMaxMessages(Number(e.target.value))}
-              className="bg-gray-700 text-gray-200 text-sm rounded px-2 py-1 border border-gray-600"
-            >
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-              <option value={30}>30</option>
-              <option value={50}>50</option>
-            </select>
-          </div> */}
         </div>
 
         {loading ? (
@@ -278,6 +261,7 @@ export default function Home() {
                     sent: timeLabel,
                     sentFull: item.sent,
                     price: item.price,
+                    count: item.count,
                     bullboxupper: item.levels[0] || 0,
                     bullboxlower: item.levels[1] || 0,
                     bearboxupper: item.levels[2] || 0,
@@ -293,7 +277,11 @@ export default function Home() {
                   d.bearboxlower,
                 ]);
                 const minValue = Math.min(...allValues);
-                const yAxisMin = (minValue * 2) / 3;
+                const maxValue = Math.max(...allValues);
+                const dataRange = maxValue - minValue;
+                const padding = dataRange / 8;
+                const yAxisMin = minValue - 2 * padding;
+                const yAxisMax = maxValue + padding;
 
                 return (
                   <div
@@ -322,7 +310,7 @@ export default function Home() {
                       <ResponsiveContainer width="100%" height={400}>
                         <ComposedChart
                           data={chartData}
-                          margin={{ top: 20, right: 20, left: 0, bottom: 10 }}
+                          margin={{ top: 50, right: 20, left: 0, bottom: 50 }}
                           style={{ minHeight: 220 }}
                         >
                           <CartesianGrid
@@ -331,14 +319,24 @@ export default function Home() {
                           />
                           <XAxis
                             dataKey="sent"
+                            tick={{ fill: "#f31212ff", fontSize: 10 }}
+                            height={40}
+                            orientation="top"
+                            xAxisId="date"
+                          />
+                          <XAxis
+                            dataKey="count"
                             tick={{ fill: "#9CA3AF", fontSize: 10 }}
                             height={40}
+                            orientation="bottom"
+                            tickFormatter={(value) => value.toFixed(0)}
+                            xAxisId="count"
                           />
                           <YAxis
                             tick={{ fill: "#9CA3AF", fontSize: 10 }}
                             width={60}
                             tickFormatter={(value) => value.toFixed(0)}
-                            domain={["dataMin", "dataMax"]}
+                            domain={[yAxisMin, yAxisMax]}
                           />
                           <Tooltip
                             contentStyle={{
