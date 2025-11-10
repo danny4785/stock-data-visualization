@@ -1,22 +1,57 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+import { useEffect, useState, useRef } from "react";
+import {
+  Line,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+  ComposedChart,
+} from "recharts";
 
-const DIRECT_API_CALL = true 
+const DIRECT_API_CALL = true;
+const MAX_MESSAGES = 20;
 
-interface MatrixRow {
-  symbol: string
-  timeframe: string
-  price: number
-  count: number
-  levels: number[]
+interface MessageItem {
+  sent: string;
+  price: number;
+  levels: number[];
+  messageId: string;
+}
+
+interface SymbolTimeframeData {
+  symbol: string;
+  timeframe: string;
+  items: MessageItem[];
+}
+
+interface ApiResponse {
+  items: Array<{
+    symbol: string;
+    timeframe: string;
+    price: number;
+    count: number;
+    levels: number[];
+  }>;
+  lastUpdated: string | null;
+  messageId: string | null;
+  sent: string | null;
+}
+
+function adjustToUserTimezone(date: Date): Date {
+  const userTimezoneOffset = date.getTimezoneOffset() * 60000;
+  const utcTimestamp = date.getTime() - userTimezoneOffset;
+  return new Date(utcTimestamp);
 }
 
 function formatTime(dateString: string | null) {
-  if (!dateString) return "N/A"
+  if (!dateString) return "N/A";
   try {
-    const date = new Date(dateString)
+    const date = new Date(dateString);
     return date.toLocaleString("en-US", {
       month: "short",
       day: "numeric",
@@ -25,127 +60,250 @@ function formatTime(dateString: string | null) {
       minute: "2-digit",
       second: "2-digit",
       hour12: true,
-    })
+    });
   } catch {
-    return "Invalid date"
+    return "Invalid date";
   }
 }
 
-function generateRawMatrix(items: MatrixRow[]) {
+function generateRawMatrix(
+  items: Array<{
+    symbol: string;
+    timeframe: string;
+    price: number;
+    count: number;
+    levels: number[];
+  }>
+) {
   return items
     .map(
       (row) =>
-        `${row.symbol} ${row.timeframe} ${row.price.toFixed(2)} ${row.count.toFixed(2)} ${row.levels.map((l) => l.toFixed(2)).join(" ")}`,
+        `${row.symbol} ${row.timeframe} ${row.price.toFixed(
+          2
+        )} ${row.count.toFixed(2)} ${row.levels
+          .map((l) => l.toFixed(2))
+          .join(" ")}`
     )
-    .join("\n")
+    .join("\n");
 }
 
 export default function Home() {
-  const [data, setData] = useState<{ items: MatrixRow[]; lastUpdated: string | null }>({ items: [], lastUpdated: null })
-  const [loading, setLoading] = useState(true)
-  const [copied, setCopied] = useState(false)
+  const [data, setData] = useState<SymbolTimeframeData[]>([]);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
+  const [latestMessageData, setLatestMessageData] = useState<
+    Array<{
+      symbol: string;
+      timeframe: string;
+      price: number;
+      count: number;
+      levels: number[];
+    }>
+  >([]);
+  const seenMessageIdsRef = useRef<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const apiEndpoint = DIRECT_API_CALL ? '/api/gaggle-direct' : '/api/data'
-        const res = await fetch(apiEndpoint)
+        const apiEndpoint = DIRECT_API_CALL
+          ? "/api/gaggle-direct"
+          : "/api/data";
+        const res = await fetch(apiEndpoint);
         if (res.ok) {
-          const result = await res.json()
-          setData(result)
+          const result: ApiResponse = await res.json();
+
+          setLatestMessageData(result.items);
+          setLastUpdated(result.lastUpdated);
+          if (
+            result.messageId &&
+            !seenMessageIdsRef.current.has(result.messageId) &&
+            result.sent
+          ) {
+            seenMessageIdsRef.current.add(result.messageId);
+
+            setData((prevData) => {
+              const messageId = result.messageId!;
+
+              const messageIdExists = prevData.some((symbolData) =>
+                symbolData.items.some((item) => item.messageId === messageId)
+              );
+
+              if (messageIdExists) {
+                return prevData;
+              }
+
+              const newData = [...prevData];
+              result.items.forEach((item) => {
+                const existingIndex = newData.findIndex(
+                  (d) =>
+                    d.symbol === item.symbol && d.timeframe === item.timeframe
+                );
+
+                const messageItem: MessageItem = {
+                  sent: result.sent!,
+                  price: item.price,
+                  levels: item.levels,
+                  messageId: messageId,
+                };
+
+                if (existingIndex >= 0) {
+                  const hasDuplicate = newData[existingIndex].items.some(
+                    (existingItem) =>
+                      existingItem.messageId === messageItem.messageId
+                  );
+
+                  if (!hasDuplicate) {
+                    newData[existingIndex].items.push(messageItem);
+
+                    if (newData[existingIndex].items.length > MAX_MESSAGES) {
+                      newData[existingIndex].items.shift();
+                    }
+                  }
+                } else {
+                  newData.push({
+                    symbol: item.symbol,
+                    timeframe: item.timeframe,
+                    items: [messageItem],
+                  });
+                }
+              });
+
+              return newData;
+            });
+          }
         }
       } catch (error) {
-        console.log("[v0] Fetch error:", error)
+        console.log("[v0] Fetch error:", error);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchData()
-    const interval = setInterval(fetchData, 30000)
-    return () => clearInterval(interval)
-  }, [])
+    fetchData();
+    const interval = setInterval(fetchData, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const copyRawData = async () => {
-    const rawText = generateRawMatrix(data.items)
-    await navigator.clipboard.writeText(rawText)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+    const rawText = generateRawMatrix(latestMessageData);
+    await navigator.clipboard.writeText(rawText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-gray-950 to-gray-900 text-white p-4 font-mono">
+    <div className="min-h-screen bg-linear-to-br from-gray-950 to-gray-900 text-white p-2 font-mono">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold text-center mb-2 text-cyan-400">Levels Forecast Data Matrix</h1>
-          <p className="text-center text-gray-400 text-sm">Real-time market data • Auto-refresh every 30s</p>
+          <h1 className="text-4xl font-bold text-center mb-2 text-cyan-400">
+            Levels Forecast Data Matrix
+          </h1>
+          <p className="text-center text-gray-400 text-sm">
+            Real-time market data • Auto-refresh every 30s
+          </p>
         </div>
 
         {/* Last Updated */}
         <div className="mb-8 p-4 bg-gray-800/50 rounded-lg border border-gray-700 flex items-center justify-between">
           <span className="text-gray-400">Last Updated:</span>
-          <span className="text-cyan-300 font-semibold">{formatTime(data.lastUpdated)}</span>
+          <span className="text-cyan-300 font-semibold">
+            {formatTime(lastUpdated)}
+          </span>
         </div>
 
         {loading ? (
           <div className="text-center py-16">
             <p className="text-gray-400 text-lg">Loading data...</p>
           </div>
-        ) : data.items.length === 0 ? (
+        ) : data.length === 0 ? (
           <div className="text-center py-16 bg-gray-800/30 rounded-lg border border-gray-700">
-            <p className="text-gray-400">Waiting for latest email from TradeStation...</p>
-            <p className="text-xs text-gray-500 mt-3">Polling every 2 mins • Display updates every 30s</p>
+            <p className="text-gray-400">
+              Waiting for latest email from TradeStation...
+            </p>
+            <p className="text-xs text-gray-500 mt-3">
+              Polling every 2 mins • Display updates every 30s
+            </p>
           </div>
         ) : (
           <>
             <div className="space-y-2 mb-10">
-              {data.items.map((row: MatrixRow, i: number) => {
-                const chartData = row.levels.map((level, idx) => ({
-                  name: `L${idx + 1}`,
-                  value: level,
-                }))
+              {data.map((row: SymbolTimeframeData, i: number) => {
+                const chartData = row.items.map((item) => {
+                  const sentDate = new Date(item.sent);
+                  const adjustedDate = adjustToUserTimezone(sentDate);
+                  const timeLabel = adjustedDate.toLocaleString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: true,
+                  });
+                  return {
+                    sent: timeLabel,
+                    sentFull: item.sent,
+                    price: item.price,
+                    bullboxupper: item.levels[0] || 0,
+                    bullboxlower: item.levels[1] || 0,
+                    bearboxupper: item.levels[2] || 0,
+                    bearboxlower: item.levels[3] || 0,
+                  };
+                });
+
+                const allValues = chartData.flatMap((d) => [
+                  d.price,
+                  d.bullboxupper,
+                  d.bullboxlower,
+                  d.bearboxupper,
+                  d.bearboxlower,
+                ]);
+                const minValue = Math.min(...allValues);
+                const yAxisMin = (minValue * 2) / 3;
 
                 return (
                   <div
-                    key={i}
+                    key={`${row.symbol}-${row.timeframe}-${i}`}
                     className="border border-gray-700 rounded-lg overflow-hidden bg-gray-800/20 hover:bg-gray-800/40 transition-colors"
                   >
-                    {/* Table Row */}
                     <div className="grid grid-cols-12 gap-4 p-4 items-center border-b border-gray-700">
-                      <div className="col-span-2">
-                        <span className="font-bold text-cyan-300 text-sm">{row.symbol}</span>
-                      </div>
-                      <div className="col-span-2">
-                        <span className="text-gray-300 text-sm">{row.timeframe}</span>
+                      <div className="col-span-3">
+                        <span className="font-bold text-cyan-300 text-sm">
+                          {row.symbol}
+                        </span>
                       </div>
                       <div className="col-span-3">
-                        <span className="font-bold text-lg text-white">{row.price.toFixed(2)}</span>
+                        <span className="text-gray-300 text-sm">
+                          {row.timeframe}
+                        </span>
                       </div>
-                      <div className="col-span-5">
-                        <div className="flex gap-1.5 flex-wrap">
-                          {row.levels.map((lvl: number, j: number) => (
-                            <span
-                              key={j}
-                              className="text-gray-300 text-xs px-2 py-1 bg-gray-700/60 rounded border border-gray-600 whitespace-nowrap"
-                            >
-                              {lvl.toFixed(2)}
-                            </span>
-                          ))}
-                        </div>
+                      <div className="col-span-6">
+                        <span className="text-gray-400 text-xs">
+                          Messages: {row.items.length}/MAX_MESSAGES
+                        </span>
                       </div>
                     </div>
 
-                    {/* Chart Row - Below Each Table Row */}
-                    <div className="p-4 bg-gray-900/40">
-                      <ResponsiveContainer width="100%" height={180}>
-                        <LineChart data={chartData} margin={{ top: 5, right: 20, left: 40, bottom: 5 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#374151" />
-                          <XAxis dataKey="name" tick={{ fill: "#9CA3AF", fontSize: 10 }} />
+                    <div className="bg-gray-900/40 pt-4 pb-2">
+                      <ResponsiveContainer width="100%" height={400}>
+                        <ComposedChart
+                          data={chartData}
+                          margin={{ top: 20, right: 20, left: 0, bottom: 10 }}
+                        >
+                          <CartesianGrid
+                            strokeDasharray="3 3"
+                            stroke="#374151"
+                          />
+                          <XAxis
+                            dataKey="sent"
+                            tick={{ fill: "#9CA3AF", fontSize: 10 }}
+                            height={40}
+                          />
                           <YAxis
                             tick={{ fill: "#9CA3AF", fontSize: 10 }}
                             width={60}
                             tickFormatter={(value) => value.toFixed(0)}
+                            domain={["dataMin", "dataMax"]}
                           />
                           <Tooltip
                             contentStyle={{
@@ -155,32 +313,89 @@ export default function Home() {
                               padding: "8px",
                             }}
                             labelStyle={{ color: "#E5E7EB" }}
-                            formatter={(value: number) => [value.toFixed(2), "Price"]}
+                            formatter={(value: number, name: string) => {
+                              const labelMap: Record<string, string> = {
+                                bullboxupper: "Bull Box Upper",
+                                bullboxlower: "Bull Box Lower",
+                                bearboxupper: "Bear Box Upper",
+                                bearboxlower: "Bear Box Lower",
+                                price: "Price",
+                              };
+                              return [value.toFixed(2), labelMap[name] || name];
+                            }}
+                          />
+                          <Legend
+                            wrapperStyle={{
+                              paddingTop: "5px",
+                              paddingBottom: "5px",
+                            }}
+                            iconType="line"
+                          />
+
+                          {/* Replace Levels with Bull/Bear Lines */}
+                          <Line
+                            type="monotone"
+                            dataKey="bullboxupper"
+                            stroke="#16A34A"
+                            strokeWidth={2}
+                            dot={{ fill: "#16A34A", r: 4 }}
+                            name="Bull Box Upper"
                           />
                           <Line
                             type="monotone"
-                            dataKey="value"
-                            stroke="#22D3EE"
-                            dot={{ fill: "#22D3EE", r: 3 }}
+                            dataKey="bullboxlower"
+                            stroke="#4ADE80"
                             strokeWidth={2}
+                            dot={{ fill: "#4ADE80", r: 4 }}
+                            name="Bull Box Lower"
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="bearboxupper"
+                            stroke="#DC2626"
+                            strokeWidth={2}
+                            dot={{ fill: "#DC2626", r: 4 }}
+                            name="Bear Box Upper"
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="bearboxlower"
+                            stroke="#F87171"
+                            strokeWidth={2}
+                            dot={{ fill: "#F87171", r: 4 }}
+                            name="Bear Box Lower"
+                          />
+
+                          {/* Price line */}
+                          <Line
+                            type="monotone"
+                            dataKey="price"
+                            stroke="#22D3EE"
+                            strokeWidth={1.5}
+                            dot={{ fill: "#22D3EE", r: 4 }}
+                            name="Price"
                             isAnimationActive={false}
                           />
-                        </LineChart>
+                        </ComposedChart>
                       </ResponsiveContainer>
                     </div>
                   </div>
-                )
+                );
               })}
             </div>
 
-            {/* Raw Data */}
+            {/* Raw Data - Latest Email Only */}
             <div className="mt-10 pt-6 border-t border-gray-700">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold text-gray-300">Raw Data Matrix</h2>
+                <h2 className="text-lg font-semibold text-gray-300">
+                  Latest Email Data
+                </h2>
                 <button
                   onClick={copyRawData}
                   className={`px-4 py-2 rounded text-xs font-medium transition-colors ${
-                    copied ? "bg-green-600 text-white" : "bg-cyan-600 hover:bg-cyan-700 text-white"
+                    copied
+                      ? "bg-green-600 text-white"
+                      : "bg-cyan-600 hover:bg-cyan-700 text-white"
                   }`}
                 >
                   {copied ? "✓ Copied" : "Copy"}
@@ -188,7 +403,7 @@ export default function Home() {
               </div>
               <textarea
                 readOnly
-                value={generateRawMatrix(data.items)}
+                value={generateRawMatrix(latestMessageData)}
                 className="w-full h-40 bg-gray-800 text-gray-300 p-4 rounded border border-gray-700 font-mono text-xs resize-none"
               />
             </div>
@@ -196,5 +411,5 @@ export default function Home() {
         )}
       </div>
     </div>
-  )
+  );
 }
