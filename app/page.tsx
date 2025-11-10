@@ -339,57 +339,164 @@ export default function Home() {
                             domain={[yAxisMin, yAxisMax]}
                           />
                           <Tooltip
-                            contentStyle={{
-                              backgroundColor: "#1F2937",
-                              border: "1px solid #4B5563",
-                              borderRadius: "6px",
-                              padding: "8px",
-                            }}
-                            labelStyle={{ color: "#E5E7EB" }}
-                            formatter={(value: number, name: string) => {
-                              const labelMap: Record<string, string> = {
-                                bullboxupper: "Bull Box Upper",
-                                bullboxlower: "Bull Box Lower",
-                                bearboxupper: "Bear Box Upper",
-                                bearboxlower: "Bear Box Lower",
-                                price: "Price",
-                              };
-                              return [value.toFixed(2), labelMap[name] || name];
+                            allowEscapeViewBox={{ x: true, y: true }}
+                            content={({
+                              active,
+                              payload,
+                              label,
+                            }: {
+                              active?: boolean;
+                              payload?: Array<{
+                                dataKey?: string;
+                                value?: number | string;
+                                color?: string;
+                                payload?: any;
+                              }>;
+                              label?: string | number;
+                            }) => {
+                              if (active && payload && payload.length) {
+                                const data = payload[0].payload;
+                                const labelMap: Record<string, string> = {
+                                  bullboxupper: "Bull Box Upper",
+                                  bullboxlower: "Bull Box Lower",
+                                  bearboxupper: "Bear Box Upper",
+                                  bearboxlower: "Bear Box Lower",
+                                  price: "Price",
+                                  count: "Count",
+                                };
+                                return (
+                                  <div
+                                    style={{
+                                      backgroundColor: "#1F2937",
+                                      border: "1px solid #4B5563",
+                                      borderRadius: "6px",
+                                      padding: "8px",
+                                      fontSize: "12px",
+                                    }}
+                                  >
+                                    <p
+                                      style={{
+                                        color: "#E5E7EB",
+                                        fontSize: "8px",
+                                        marginBottom: "4px",
+                                      }}
+                                    >
+                                      {label}
+                                    </p>
+                                    <div style={{ marginTop: "4px" }}>
+                                      <p
+                                        style={{
+                                          color: "#22D3EE",
+                                          margin: "2px 0",
+                                        }}
+                                      >
+                                        Count: {data.count?.toFixed(2) || "N/A"}
+                                      </p>
+                                      <p
+                                        style={{
+                                          color: "#22D3EE",
+                                          margin: "2px 0",
+                                        }}
+                                      >
+                                        Price: {data.price?.toFixed(2) || "N/A"}
+                                      </p>
+                                      {payload.map((entry, index) => {
+                                        if (
+                                          entry.dataKey === "count" ||
+                                          entry.dataKey === "price"
+                                        ) {
+                                          return null;
+                                        }
+                                        return (
+                                          <p
+                                            key={index}
+                                            style={{
+                                              color: entry.color || "#E5E7EB",
+                                              margin: "2px 0",
+                                            }}
+                                          >
+                                            {labelMap[
+                                              entry.dataKey as string
+                                            ] || entry.dataKey}
+                                            :{" "}
+                                            {typeof entry.value === "number"
+                                              ? entry.value.toFixed(2)
+                                              : entry.value}
+                                          </p>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              return null;
                             }}
                           />
                           <Legend
+                            content={({ payload }) => {
+                              const legendItems = [
+                                { label: "Bull Box Upper", color: "#16A34A" },
+                                { label: "Bull Box Lower", color: "#16A34A" },
+                                { label: "Bear Box Upper", color: "#DC2626" },
+                                { label: "Bear Box Lower", color: "#DC2626" },
+                              ];
+                              return (
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    justifyContent: "center",
+                                    gap: "20px",
+                                    padding: "12px 8px 8px 8px",
+                                    flexWrap: "wrap",
+                                  }}
+                                >
+                                  {legendItems.map((item) => {
+                                    return (
+                                      <div
+                                        key={item.label}
+                                        style={{
+                                          display: "flex",
+                                          alignItems: "center",
+                                          gap: "6px",
+                                          fontSize: "11px",
+                                        }}
+                                      >
+                                        <div
+                                          style={{
+                                            width: "16px",
+                                            height: "2px",
+                                            backgroundColor: item.color,
+                                            borderRadius: "1px",
+                                          }}
+                                        />
+                                        <span
+                                          style={{
+                                            color: "#D1D5DB",
+                                            fontWeight: 500,
+                                          }}
+                                        >
+                                          {item.label}
+                                        </span>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            }}
+                          />
+
+                          {/* <Legend
                             wrapperStyle={{
                               paddingTop: "5px",
                               paddingBottom: "5px",
                             }}
                             iconType="line"
-                          />
-
-                          {/* Replace Levels with Bull/Bear Lines */}
-                          <Line
-                            type="monotone"
-                            dataKey="bullboxupper"
-                            stroke="#16A34A"
-                            strokeWidth={2}
-                            // dot={{ fill: "#16A34A", r: 4 }}
-                            dot={false}
-                            name="Bull Box Upper"
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey="bullboxlower"
-                            stroke="#16A34A"
-                            strokeWidth={2}
-                            // dot={{ fill: "#4ADE80", r: 4 }}
-                            dot={false}
-                            name="Bull Box Lower"
-                          />
+                          /> */}
                           <Line
                             type="monotone"
                             dataKey="bearboxupper"
                             stroke="#DC2626"
                             strokeWidth={2}
-                            // dot={{ fill: "#DC2626", r: 4 }}
                             dot={false}
                             name="Bear Box Upper"
                           />
@@ -398,9 +505,25 @@ export default function Home() {
                             dataKey="bearboxlower"
                             stroke="#DC2626"
                             strokeWidth={2}
-                            // dot={{ fill: "#F87171", r: 4 }}
                             dot={false}
                             name="Bear Box Lower"
+                          />
+
+                          <Line
+                            type="monotone"
+                            dataKey="bullboxupper"
+                            stroke="#16A34A"
+                            strokeWidth={2}
+                            dot={false}
+                            name="Bull Box Upper"
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="bullboxlower"
+                            stroke="#16A34A"
+                            strokeWidth={2}
+                            dot={false}
+                            name="Bull Box Lower"
                           />
 
                           {/* Price line */}
@@ -416,6 +539,7 @@ export default function Home() {
                                   <circle
                                     cx={cx}
                                     cy={cy}
+                                    key={index}
                                     r={4}
                                     fill="#22D3EE"
                                     stroke="#0891b2"
