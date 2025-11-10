@@ -1,6 +1,6 @@
-'use client'
+"use client";
 
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef } from "react";
 import {
   Line,
   Bar,
@@ -10,69 +10,69 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-  ComposedChart
-} from 'recharts'
+  ComposedChart,
+} from "recharts";
 
-const DIRECT_API_CALL = true
-const MAX_MESSAGES = 10
+const DIRECT_API_CALL = true;
+const MAX_MESSAGES = 20;
 
 interface MessageItem {
-  sent: string
-  price: number
-  levels: number[]
-  messageId: string
+  sent: string;
+  price: number;
+  levels: number[];
+  messageId: string;
 }
 
 interface SymbolTimeframeData {
-  symbol: string
-  timeframe: string
-  items: MessageItem[]
+  symbol: string;
+  timeframe: string;
+  items: MessageItem[];
 }
 
 interface ApiResponse {
   items: Array<{
-    symbol: string
-    timeframe: string
-    price: number
-    count: number
-    levels: number[]
-  }>
-  lastUpdated: string | null
-  messageId: string | null
-  sent: string | null
+    symbol: string;
+    timeframe: string;
+    price: number;
+    count: number;
+    levels: number[];
+  }>;
+  lastUpdated: string | null;
+  messageId: string | null;
+  sent: string | null;
 }
 
 function adjustToUserTimezone(date: Date): Date {
-  const userTimezoneOffset = date.getTimezoneOffset() * 60000
-  const utcTimestamp = date.getTime() - userTimezoneOffset
-  return new Date(utcTimestamp)
+  const userTimezoneOffset = date.getTimezoneOffset() * 60000;
+  const utcTimestamp = date.getTime() - userTimezoneOffset;
+  return new Date(utcTimestamp);
 }
 
 function formatTime(dateString: string | null) {
-  if (!dateString) return 'N/A'
+  if (!dateString) return "N/A";
   try {
-    const date = new Date(dateString)
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: true
-    })
+    const date = new Date(dateString);
+    return date.toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hour12: true,
+    });
   } catch {
-    return 'Invalid date'
+    return "Invalid date";
   }
 }
 
 function generateRawMatrix(
   items: Array<{
-    symbol: string
-    timeframe: string
-    price: number
-    count: number
-    levels: number[]
+    symbol: string;
+    timeframe: string;
+    price: number;
+    count: number;
+    levels: number[];
   }>
 ) {
   return items
@@ -82,319 +82,334 @@ function generateRawMatrix(
           2
         )} ${row.count.toFixed(2)} ${row.levels
           .map((l) => l.toFixed(2))
-          .join(' ')}`
+          .join(" ")}`
     )
-    .join('\n')
+    .join("\n");
 }
 
 export default function Home() {
-  const [data, setData] = useState<SymbolTimeframeData[]>([])
-  const [lastUpdated, setLastUpdated] = useState<string | null>(null)
+  const [data, setData] = useState<SymbolTimeframeData[]>([]);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
   const [latestMessageData, setLatestMessageData] = useState<
     Array<{
-      symbol: string
-      timeframe: string
-      price: number
-      count: number
-      levels: number[]
+      symbol: string;
+      timeframe: string;
+      price: number;
+      count: number;
+      levels: number[];
     }>
-  >([])
-  const seenMessageIdsRef = useRef<Set<string>>(new Set())
-  const [loading, setLoading] = useState(true)
-  const [copied, setCopied] = useState(false)
+  >([]);
+  const seenMessageIdsRef = useRef<Set<string>>(new Set());
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const apiEndpoint = DIRECT_API_CALL ? '/api/gaggle-direct' : '/api/data'
-        const res = await fetch(apiEndpoint)
+        const apiEndpoint = DIRECT_API_CALL
+          ? "/api/gaggle-direct"
+          : "/api/data";
+        const res = await fetch(apiEndpoint);
         if (res.ok) {
-          const result: ApiResponse = await res.json()
+          const result: ApiResponse = await res.json();
 
-          setLatestMessageData(result.items)
-          setLastUpdated(result.lastUpdated)
+          setLatestMessageData(result.items);
+          setLastUpdated(result.lastUpdated);
           if (
             result.messageId &&
             !seenMessageIdsRef.current.has(result.messageId) &&
             result.sent
           ) {
-            seenMessageIdsRef.current.add(result.messageId)
+            seenMessageIdsRef.current.add(result.messageId);
 
             setData((prevData) => {
-              const messageId = result.messageId!
-              
+              const messageId = result.messageId!;
+
               const messageIdExists = prevData.some((symbolData) =>
                 symbolData.items.some((item) => item.messageId === messageId)
-              )
+              );
 
               if (messageIdExists) {
-                return prevData
+                return prevData;
               }
 
-              const newData = [...prevData]
+              const newData = [...prevData];
               result.items.forEach((item) => {
                 const existingIndex = newData.findIndex(
                   (d) =>
                     d.symbol === item.symbol && d.timeframe === item.timeframe
-                )
+                );
 
                 const messageItem: MessageItem = {
                   sent: result.sent!,
                   price: item.price,
                   levels: item.levels,
-                  messageId: messageId
-                }
+                  messageId: messageId,
+                };
 
                 if (existingIndex >= 0) {
                   const hasDuplicate = newData[existingIndex].items.some(
                     (existingItem) =>
                       existingItem.messageId === messageItem.messageId
-                  )
+                  );
 
                   if (!hasDuplicate) {
-                    newData[existingIndex].items.push(messageItem)
+                    newData[existingIndex].items.push(messageItem);
 
                     if (newData[existingIndex].items.length > MAX_MESSAGES) {
-                      newData[existingIndex].items.shift()
+                      newData[existingIndex].items.shift();
                     }
                   }
                 } else {
                   newData.push({
                     symbol: item.symbol,
                     timeframe: item.timeframe,
-                    items: [messageItem]
-                  })
+                    items: [messageItem],
+                  });
                 }
-              })
+              });
 
-              return newData
-            })
+              return newData;
+            });
           }
         }
       } catch (error) {
-        console.log('[v0] Fetch error:', error)
+        console.log("[v0] Fetch error:", error);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    fetchData()
-    const interval = setInterval(fetchData, 30000)
-    return () => clearInterval(interval)
-  }, [])
+    fetchData();
+    const interval = setInterval(fetchData, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const copyRawData = async () => {
-    const rawText = generateRawMatrix(latestMessageData)
-    await navigator.clipboard.writeText(rawText)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
+    const rawText = generateRawMatrix(latestMessageData);
+    await navigator.clipboard.writeText(rawText);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
-    <div className='min-h-screen bg-linear-to-br from-gray-950 to-gray-900 text-white p-2 font-mono'>
-      <div className='max-w-6xl mx-auto'>
+    <div className="min-h-screen bg-linear-to-br from-gray-950 to-gray-900 text-white p-2 font-mono">
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className='mb-8'>
-          <h1 className='text-4xl font-bold text-center mb-2 text-cyan-400'>
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold text-center mb-2 text-cyan-400">
             Levels Forecast Data Matrix
           </h1>
-          <p className='text-center text-gray-400 text-sm'>
+          <p className="text-center text-gray-400 text-sm">
             Real-time market data • Auto-refresh every 30s
           </p>
         </div>
 
         {/* Last Updated */}
-        <div className='mb-8 p-4 bg-gray-800/50 rounded-lg border border-gray-700 flex items-center justify-between'>
-          <span className='text-gray-400'>Last Updated:</span>
-          <span className='text-cyan-300 font-semibold'>
+        <div className="mb-8 p-4 bg-gray-800/50 rounded-lg border border-gray-700 flex items-center justify-between">
+          <span className="text-gray-400">Last Updated:</span>
+          <span className="text-cyan-300 font-semibold">
             {formatTime(lastUpdated)}
           </span>
         </div>
 
         {loading ? (
-          <div className='text-center py-16'>
-            <p className='text-gray-400 text-lg'>Loading data...</p>
+          <div className="text-center py-16">
+            <p className="text-gray-400 text-lg">Loading data...</p>
           </div>
         ) : data.length === 0 ? (
-          <div className='text-center py-16 bg-gray-800/30 rounded-lg border border-gray-700'>
-            <p className='text-gray-400'>
+          <div className="text-center py-16 bg-gray-800/30 rounded-lg border border-gray-700">
+            <p className="text-gray-400">
               Waiting for latest email from TradeStation...
             </p>
-            <p className='text-xs text-gray-500 mt-3'>
+            <p className="text-xs text-gray-500 mt-3">
               Polling every 2 mins • Display updates every 30s
             </p>
           </div>
         ) : (
           <>
-            <div className='space-y-2 mb-10'>
+            <div className="space-y-2 mb-10">
               {data.map((row: SymbolTimeframeData, i: number) => {
                 const chartData = row.items.map((item) => {
-                  const sentDate = new Date(item.sent)
-                  const adjustedDate = adjustToUserTimezone(sentDate)
-                  const timeLabel = adjustedDate.toLocaleString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    hour12: true
-                  })
-
+                  const sentDate = new Date(item.sent);
+                  const adjustedDate = adjustToUserTimezone(sentDate);
+                  const timeLabel = adjustedDate.toLocaleString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: true,
+                  });
                   return {
                     sent: timeLabel,
                     sentFull: item.sent,
                     price: item.price,
-                    level1: item.levels[0] || 0,
-                    level2: item.levels[1] || 0,
-                    level3: item.levels[2] || 0,
-                    level4: item.levels[3] || 0
-                  }
-                })
+                    bullboxupper: item.levels[0] || 0,
+                    bullboxlower: item.levels[1] || 0,
+                    bearboxupper: item.levels[2] || 0,
+                    bearboxlower: item.levels[3] || 0,
+                  };
+                });
 
                 const allValues = chartData.flatMap((d) => [
                   d.price,
-                  d.level1,
-                  d.level2,
-                  d.level3,
-                  d.level4
-                ])
-                const minValue = Math.min(...allValues)
-                const yAxisMin = (minValue * 2) / 3
+                  d.bullboxupper,
+                  d.bullboxlower,
+                  d.bearboxupper,
+                  d.bearboxlower,
+                ]);
+                const minValue = Math.min(...allValues);
+                const yAxisMin = (minValue * 2) / 3;
 
                 return (
                   <div
                     key={`${row.symbol}-${row.timeframe}-${i}`}
-                    className='border border-gray-700 rounded-lg overflow-hidden bg-gray-800/20 hover:bg-gray-800/40 transition-colors'
+                    className="border border-gray-700 rounded-lg overflow-hidden bg-gray-800/20 hover:bg-gray-800/40 transition-colors"
                   >
-                    <div className='grid grid-cols-12 gap-4 p-4 items-center border-b border-gray-700'>
-                      <div className='col-span-3'>
-                        <span className='font-bold text-cyan-300 text-sm'>
+                    <div className="grid grid-cols-12 gap-4 p-4 items-center border-b border-gray-700">
+                      <div className="col-span-3">
+                        <span className="font-bold text-cyan-300 text-sm">
                           {row.symbol}
                         </span>
                       </div>
-                      <div className='col-span-3'>
-                        <span className='text-gray-300 text-sm'>
+                      <div className="col-span-3">
+                        <span className="text-gray-300 text-sm">
                           {row.timeframe}
                         </span>
                       </div>
-                      <div className='col-span-6'>
-                        <span className='text-gray-400 text-xs'>
-                          Messages: {row.items.length}/{MAX_MESSAGES}
+                      <div className="col-span-6">
+                        <span className="text-gray-400 text-xs">
+                          Messages: {row.items.length}/MAX_MESSAGES
                         </span>
                       </div>
                     </div>
 
-                    <div className='bg-gray-900/40 pt-4 pb-2'>
-                      <ResponsiveContainer width='100%' height={400}>
+                    <div className="bg-gray-900/40 pt-4 pb-2">
+                      <ResponsiveContainer width="100%" height={400}>
                         <ComposedChart
                           data={chartData}
                           margin={{ top: 20, right: 20, left: 0, bottom: 10 }}
-                          barCategoryGap={0}
                         >
                           <CartesianGrid
-                            strokeDasharray='3 3'
-                            stroke='#374151'
+                            strokeDasharray="3 3"
+                            stroke="#374151"
                           />
                           <XAxis
-                            dataKey='sent'
-                            tick={{ fill: '#9CA3AF', fontSize: 10 }}
+                            dataKey="sent"
+                            tick={{ fill: "#9CA3AF", fontSize: 10 }}
                             height={40}
                           />
                           <YAxis
-                            tick={{ fill: '#9CA3AF', fontSize: 10 }}
+                            tick={{ fill: "#9CA3AF", fontSize: 10 }}
                             width={60}
                             tickFormatter={(value) => value.toFixed(0)}
-                            tickCount={12}
-                            domain={[yAxisMin, 'auto']}
+                            domain={["dataMin", "dataMax"]}
                           />
                           <Tooltip
                             contentStyle={{
-                              backgroundColor: '#1F2937',
-                              border: '1px solid #4B5563',
-                              borderRadius: '6px',
-                              padding: '8px'
+                              backgroundColor: "#1F2937",
+                              border: "1px solid #4B5563",
+                              borderRadius: "6px",
+                              padding: "8px",
                             }}
-                            labelStyle={{ color: '#E5E7EB' }}
+                            labelStyle={{ color: "#E5E7EB" }}
                             formatter={(value: number, name: string) => {
-                              if (name === 'price' || name === 'Price') {
-                                return [value.toFixed(2), 'Price']
-                              }
-                              return [
-                                value.toFixed(2),
-                                `Level ${name.slice(-1)}`
-                              ]
+                              const labelMap: Record<string, string> = {
+                                bullboxupper: "Bull Box Upper",
+                                bullboxlower: "Bull Box Lower",
+                                bearboxupper: "Bear Box Upper",
+                                bearboxlower: "Bear Box Lower",
+                                price: "Price",
+                              };
+                              return [value.toFixed(2), labelMap[name] || name];
                             }}
                           />
                           <Legend
-                            wrapperStyle={{ paddingTop: '5px', paddingBottom: '5px' }}
-                            iconType='line'
+                            wrapperStyle={{
+                              paddingTop: "5px",
+                              paddingBottom: "5px",
+                            }}
+                            iconType="line"
                           />
-                          <Bar
-                            dataKey='level1'
-                            fill='#3B82F6'
-                            name='Level 1'
-                            barSize={18}
-                          />
-                          <Bar
-                            dataKey='level2'
-                            fill='#8B5CF6'
-                            name='Level 2'
-                            barSize={18}
-                          />
-                          <Bar
-                            dataKey='level3'
-                            fill='#EC4899'
-                            name='Level 3'
-                            barSize={18}
-                          />
-                          <Bar
-                            dataKey='level4'
-                            fill='#F59E0B'
-                            name='Level 4'
-                            barSize={18}
+
+                          {/* Replace Levels with Bull/Bear Lines */}
+                          <Line
+                            type="monotone"
+                            dataKey="bullboxupper"
+                            stroke="#16A34A"
+                            strokeWidth={2}
+                            dot={{ fill: "#16A34A", r: 4 }}
+                            name="Bull Box Upper"
                           />
                           <Line
-                            type='monotone'
-                            dataKey='price'
-                            stroke='#22D3EE'
-                            strokeWidth={1}
-                            dot={{ fill: '#22D3EE', r: 4 }}
-                            name='Price'
+                            type="monotone"
+                            dataKey="bullboxlower"
+                            stroke="#4ADE80"
+                            strokeWidth={2}
+                            dot={{ fill: "#4ADE80", r: 4 }}
+                            name="Bull Box Lower"
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="bearboxupper"
+                            stroke="#DC2626"
+                            strokeWidth={2}
+                            dot={{ fill: "#DC2626", r: 4 }}
+                            name="Bear Box Upper"
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="bearboxlower"
+                            stroke="#F87171"
+                            strokeWidth={2}
+                            dot={{ fill: "#F87171", r: 4 }}
+                            name="Bear Box Lower"
+                          />
+
+                          {/* Price line */}
+                          <Line
+                            type="monotone"
+                            dataKey="price"
+                            stroke="#22D3EE"
+                            strokeWidth={1.5}
+                            dot={{ fill: "#22D3EE", r: 4 }}
+                            name="Price"
                             isAnimationActive={false}
                           />
                         </ComposedChart>
                       </ResponsiveContainer>
                     </div>
                   </div>
-                )
+                );
               })}
             </div>
 
             {/* Raw Data - Latest Email Only */}
-            <div className='mt-10 pt-6 border-t border-gray-700'>
-              <div className='flex justify-between items-center mb-4'>
-                <h2 className='text-lg font-semibold text-gray-300'>
+            <div className="mt-10 pt-6 border-t border-gray-700">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold text-gray-300">
                   Latest Email Data
                 </h2>
                 <button
                   onClick={copyRawData}
                   className={`px-4 py-2 rounded text-xs font-medium transition-colors ${
                     copied
-                      ? 'bg-green-600 text-white'
-                      : 'bg-cyan-600 hover:bg-cyan-700 text-white'
+                      ? "bg-green-600 text-white"
+                      : "bg-cyan-600 hover:bg-cyan-700 text-white"
                   }`}
                 >
-                  {copied ? '✓ Copied' : 'Copy'}
+                  {copied ? "✓ Copied" : "Copy"}
                 </button>
               </div>
               <textarea
                 readOnly
                 value={generateRawMatrix(latestMessageData)}
-                className='w-full h-40 bg-gray-800 text-gray-300 p-4 rounded border border-gray-700 font-mono text-xs resize-none'
+                className="w-full h-40 bg-gray-800 text-gray-300 p-4 rounded border border-gray-700 font-mono text-xs resize-none"
               />
             </div>
           </>
         )}
       </div>
     </div>
-  )
+  );
 }
