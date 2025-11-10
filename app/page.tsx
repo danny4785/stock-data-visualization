@@ -14,7 +14,6 @@ import {
 } from "recharts";
 
 const DIRECT_API_CALL = true;
-const MAX_MESSAGES = 20;
 
 interface MessageItem {
   sent: string;
@@ -102,6 +101,7 @@ export default function Home() {
   const seenMessageIdsRef = useRef<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [maxMessages, setMaxMessages] = useState<number>(20);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -156,8 +156,13 @@ export default function Home() {
                   if (!hasDuplicate) {
                     newData[existingIndex].items.push(messageItem);
 
-                    if (newData[existingIndex].items.length > MAX_MESSAGES) {
-                      newData[existingIndex].items.shift();
+                    if (newData[existingIndex].items.length > maxMessages) {
+                      // trim oldest until length is within limit
+                      while (
+                        newData[existingIndex].items.length > maxMessages
+                      ) {
+                        newData[existingIndex].items.shift();
+                      }
                     }
                   }
                 } else {
@@ -183,7 +188,15 @@ export default function Home() {
     fetchData();
     const interval = setInterval(fetchData, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [maxMessages]);
+
+  // When maxMessages changes, trim existing stored data so each symbol/timeframe
+  // only keeps the latest `maxMessages` items.
+  useEffect(() => {
+    setData((prev) =>
+      prev.map((d) => ({ ...d, items: d.items.slice(-maxMessages) }))
+    );
+  }, [maxMessages]);
 
   const copyRawData = async () => {
     const rawText = generateRawMatrix(latestMessageData);
@@ -205,12 +218,31 @@ export default function Home() {
           </p>
         </div>
 
-        {/* Last Updated */}
+        {/* Last Updated and controls */}
         <div className="mb-8 p-4 bg-gray-800/50 rounded-lg border border-gray-700 flex items-center justify-between">
-          <span className="text-gray-400">Last Updated:</span>
-          <span className="text-cyan-300 font-semibold">
-            {formatTime(lastUpdated)}
-          </span>
+          <div className="flex items-center space-x-4">
+            <span className="text-gray-400">Last Updated:</span>
+            <span className="text-cyan-300 font-semibold">
+              {formatTime(lastUpdated)}
+            </span>
+          </div>
+
+          <div className="flex items-center space-x-3">
+            <label htmlFor="max-messages" className="text-gray-400 text-sm">
+              Max Messages
+            </label>
+            <select
+              id="max-messages"
+              value={maxMessages}
+              onChange={(e) => setMaxMessages(Number(e.target.value))}
+              className="bg-gray-700 text-gray-200 text-sm rounded px-2 py-1 border border-gray-600"
+            >
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={30}>30</option>
+              <option value={50}>50</option>
+            </select>
+          </div>
         </div>
 
         {loading ? (
@@ -279,7 +311,7 @@ export default function Home() {
                       </div>
                       <div className="col-span-6">
                         <span className="text-gray-400 text-xs">
-                          Messages: {row.items.length}/MAX_MESSAGES
+                          Messages: {row.items.length}/{maxMessages}
                         </span>
                       </div>
                     </div>
