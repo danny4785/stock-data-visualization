@@ -101,7 +101,7 @@ export default function Home() {
   const seenMessageIdsRef = useRef<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
-  const [maxMessages, setMaxMessages] = useState<number>(20);
+  const [maxMessages, setMaxMessages] = useState<number>(10);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -371,15 +371,17 @@ export default function Home() {
                             dataKey="bullboxupper"
                             stroke="#16A34A"
                             strokeWidth={2}
-                            dot={{ fill: "#16A34A", r: 4 }}
+                            // dot={{ fill: "#16A34A", r: 4 }}
+                            dot={false}
                             name="Bull Box Upper"
                           />
                           <Line
                             type="monotone"
                             dataKey="bullboxlower"
-                            stroke="#4ADE80"
+                            stroke="#16A34A"
                             strokeWidth={2}
-                            dot={{ fill: "#4ADE80", r: 4 }}
+                            // dot={{ fill: "#4ADE80", r: 4 }}
+                            dot={false}
                             name="Bull Box Lower"
                           />
                           <Line
@@ -387,15 +389,17 @@ export default function Home() {
                             dataKey="bearboxupper"
                             stroke="#DC2626"
                             strokeWidth={2}
-                            dot={{ fill: "#DC2626", r: 4 }}
+                            // dot={{ fill: "#DC2626", r: 4 }}
+                            dot={false}
                             name="Bear Box Upper"
                           />
                           <Line
                             type="monotone"
                             dataKey="bearboxlower"
-                            stroke="#F87171"
+                            stroke="#DC2626"
                             strokeWidth={2}
-                            dot={{ fill: "#F87171", r: 4 }}
+                            // dot={{ fill: "#F87171", r: 4 }}
+                            dot={false}
                             name="Bear Box Lower"
                           />
 
@@ -403,10 +407,25 @@ export default function Home() {
                           <Line
                             type="monotone"
                             dataKey="price"
-                            stroke="#22D3EE"
-                            strokeWidth={1.5}
-                            dot={{ fill: "#22D3EE", r: 4 }}
-                            name="Price"
+                            stroke="transparent"
+                            strokeWidth={0}
+                            dot={(props) => {
+                              const { cx, cy, index } = props as any;
+                              if (index === chartData.length - 1) {
+                                return (
+                                  <circle
+                                    cx={cx}
+                                    cy={cy}
+                                    r={4}
+                                    fill="#22D3EE"
+                                    stroke="#0891b2"
+                                    strokeWidth={1}
+                                  />
+                                );
+                              }
+                              return <g />;
+                            }}
+                            name=""
                             isAnimationActive={false}
                           />
                         </ComposedChart>
