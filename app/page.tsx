@@ -19,6 +19,7 @@ interface MessageItem {
   sent: string;
   price: number;
   levels: number[];
+  count?: number;
   messageId: string;
 }
 
@@ -144,6 +145,7 @@ export default function Home() {
                   sent: result.sent!,
                   price: item.price,
                   levels: item.levels,
+                  count: item.count,
                   messageId: messageId,
                 };
 
@@ -227,7 +229,7 @@ export default function Home() {
             </span>
           </div>
 
-          <div className="flex items-center space-x-3">
+          {/* <div className="flex items-center space-x-3">
             <label htmlFor="max-messages" className="text-gray-400 text-sm">
               Max Messages
             </label>
@@ -242,7 +244,7 @@ export default function Home() {
               <option value={30}>30</option>
               <option value={50}>50</option>
             </select>
-          </div>
+          </div> */}
         </div>
 
         {loading ? (
