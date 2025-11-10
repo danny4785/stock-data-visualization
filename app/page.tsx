@@ -245,6 +245,29 @@ export default function Home() {
           </div>
         ) : (
           <>
+            {/* Raw Data - Latest Email Only */}
+            <div className="mt-10 pt-6 border-t border-gray-700">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-lg font-semibold text-gray-300">
+                  Latest Email Data
+                </h2>
+                <button
+                  onClick={copyRawData}
+                  className={`px-4 py-2 rounded text-xs font-medium transition-colors ${
+                    copied
+                      ? "bg-green-600 text-white"
+                      : "bg-cyan-600 hover:bg-cyan-700 text-white"
+                  }`}
+                >
+                  {copied ? "✓ Copied" : "Copy"}
+                </button>
+              </div>
+              <textarea
+                readOnly
+                value={generateRawMatrix(latestMessageData)}
+                className="w-full h-40 bg-gray-800 text-gray-300 p-4 rounded border border-gray-700 font-mono text-xs resize-none"
+              />
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 mb-10">
               {data.map((row: SymbolTimeframeData, i: number) => {
                 const chartData = row.items.map((item) => {
@@ -558,30 +581,6 @@ export default function Home() {
                   </div>
                 );
               })}
-            </div>
-
-            {/* Raw Data - Latest Email Only */}
-            <div className="mt-10 pt-6 border-t border-gray-700">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-lg font-semibold text-gray-300">
-                  Latest Email Data
-                </h2>
-                <button
-                  onClick={copyRawData}
-                  className={`px-4 py-2 rounded text-xs font-medium transition-colors ${
-                    copied
-                      ? "bg-green-600 text-white"
-                      : "bg-cyan-600 hover:bg-cyan-700 text-white"
-                  }`}
-                >
-                  {copied ? "✓ Copied" : "Copy"}
-                </button>
-              </div>
-              <textarea
-                readOnly
-                value={generateRawMatrix(latestMessageData)}
-                className="w-full h-40 bg-gray-800 text-gray-300 p-4 rounded border border-gray-700 font-mono text-xs resize-none"
-              />
             </div>
           </>
         )}
