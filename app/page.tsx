@@ -207,7 +207,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-linear-to-br from-gray-950 to-gray-900 text-white p-2 font-mono">
-      <div className="max-w-6xl mx-auto">
+      <div className="max-w-8xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-center mb-2 text-cyan-400">
@@ -260,7 +260,7 @@ export default function Home() {
           </div>
         ) : (
           <>
-            <div className="space-y-2 mb-10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mb-10">
               {data.map((row: SymbolTimeframeData, i: number) => {
                 const chartData = row.items.map((item) => {
                   const sentDate = new Date(item.sent);
@@ -321,6 +321,7 @@ export default function Home() {
                         <ComposedChart
                           data={chartData}
                           margin={{ top: 20, right: 20, left: 0, bottom: 10 }}
+                          style={{ minHeight: 220 }}
                         >
                           <CartesianGrid
                             strokeDasharray="3 3"

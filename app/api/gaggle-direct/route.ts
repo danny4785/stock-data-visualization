@@ -49,37 +49,35 @@ function parseEmailBody(body: string) {
   if (!body) return [];
   console.log(body.split(" ")[0]);
 
-  return (
-    body
-      .split(SPLIT_CHAR)
-      .map((l) => l.trim())
-      // .filter((l) => l.startsWith(SYMBOL_PREFIX))
-      .map((l) => {
-        const p = l.split(/\s+/);
-        if (p.length < 8) return null;
+  return body
+    .split(SPLIT_CHAR)
+    .map((l) => l.trim())
+    .filter((l) => l.startsWith(SYMBOL_PREFIX))
+    .map((l) => {
+      const p = l.split(/\s+/);
+      if (p.length < 8) return null;
 
-        let symbol, timeframe, price, count, levels;
+      let symbol, timeframe, price, count, levels;
 
-        if (p[2] === "Min") {
-          symbol = p[0];
-          timeframe = `${p[1]} ${p[2]}`;
-          price = parseFloat(p[3].replace(/,/g, ""));
-          count = parseFloat(p[4]);
-          levels = p.slice(5, 9).map((x) => parseFloat(x.replace(/,/g, "")));
-        } else {
-          symbol = p[0];
-          timeframe = p[1];
-          price = parseFloat(p[2].replace(/,/g, ""));
-          count = parseFloat(p[3]);
-          levels = p.slice(4, 8).map((x) => parseFloat(x.replace(/,/g, "")));
-        }
+      if (p[2] === "Min") {
+        symbol = p[0];
+        timeframe = `${p[1]} ${p[2]}`;
+        price = parseFloat(p[3].replace(/,/g, ""));
+        count = parseFloat(p[4]);
+        levels = p.slice(5, 9).map((x) => parseFloat(x.replace(/,/g, "")));
+      } else {
+        symbol = p[0];
+        timeframe = p[1];
+        price = parseFloat(p[2].replace(/,/g, ""));
+        count = parseFloat(p[3]);
+        levels = p.slice(4, 8).map((x) => parseFloat(x.replace(/,/g, "")));
+      }
 
-        if (isNaN(price) || isNaN(count) || levels.some(isNaN)) return null;
+      if (isNaN(price) || isNaN(count) || levels.some(isNaN)) return null;
 
-        return { symbol, timeframe, price, count, levels };
-      })
-      .filter(Boolean)
-  );
+      return { symbol, timeframe, price, count, levels };
+    })
+    .filter(Boolean);
 }
 
 export async function GET() {
