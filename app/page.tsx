@@ -15,6 +15,13 @@ import {
 
 const DIRECT_API_CALL = true;
 
+interface MatrixItem {
+  symbol: string;
+  timeframe: string;
+  price: number;
+  count: number;
+  levels: number[];
+}
 interface MessageItem {
   sent: string;
   price: number;
@@ -30,13 +37,7 @@ interface SymbolTimeframeData {
 }
 
 interface ApiResponse {
-  items: Array<{
-    symbol: string;
-    timeframe: string;
-    price: number;
-    count: number;
-    levels: number[];
-  }>;
+  items: Array<MatrixItem>;
   lastUpdated: string | null;
   messageId: string | null;
   sent: string | null;
@@ -66,15 +67,7 @@ function formatTime(dateString: string | null) {
   }
 }
 
-function generateRawMatrix(
-  items: Array<{
-    symbol: string;
-    timeframe: string;
-    price: number;
-    count: number;
-    levels: number[];
-  }>
-) {
+function generateRawMatrix(items: Array<MatrixItem>) {
   return items
     .map(
       (row) =>
@@ -90,15 +83,9 @@ function generateRawMatrix(
 export default function Home() {
   const [data, setData] = useState<SymbolTimeframeData[]>([]);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
-  const [latestMessageData, setLatestMessageData] = useState<
-    Array<{
-      symbol: string;
-      timeframe: string;
-      price: number;
-      count: number;
-      levels: number[];
-    }>
-  >([]);
+  const [latestMessageData, setLatestMessageData] = useState<Array<MatrixItem>>(
+    []
+  );
   const seenMessageIdsRef = useRef<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
@@ -337,7 +324,7 @@ export default function Home() {
                             dataKey="sent"
                             tick={{ fill: "#f31212ff", fontSize: 10 }}
                             height={40}
-                            orientation="top"
+                            orientation="bottom"
                             xAxisId="date"
                           />
                           {/* <XAxis
@@ -583,6 +570,72 @@ export default function Home() {
                   </div>
                 );
               })}
+            </div>
+            {/* Display the Table */}
+            <div className="overflow-x-auto mb-8 rounded-lg border border-gray-700 max-w-5xl m-auto">
+              <table className="w-full text-sm margin-auto">
+                <thead>
+                  <tr className="bg-gray-800 border-b border-gray-700">
+                    <th className="px-3 py-2 text-left font-semibold text-cyan-400 w-12">
+                      Symbol
+                    </th>
+                    <th className="px-3 py-2 text-left font-semibold text-cyan-400 w-16">
+                      Timeframe
+                    </th>
+                    <th className="px-3 py-2 text-right font-semibold text-cyan-400 w-20">
+                      Price
+                    </th>
+                    <th className="px-3 py-2 text-center font-semibold text-cyan-400 w-20">
+                      UltraCounting
+                    </th>
+                    <th className="px-3 py-2 text-right font-semibold text-cyan-400 flex-1">
+                      Levels
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {latestMessageData.map((row: any, i: number) => (
+                    <tr
+                      key={i}
+                      className="border-b border-gray-700 hover:bg-gray-800/50 transition-colors"
+                    >
+                      <td className="px-3 py-2 font-bold text-cyan-300">
+                        {row.symbol}
+                      </td>
+                      <td className="px-3 py-2 text-gray-300 text-xs">
+                        {row.timeframe}
+                      </td>
+                      <td className="px-3 py-2 text-right font-semibold text-white">
+                        {row.price.toFixed(2)}
+                      </td>
+                      <td className="px-3 py-2 text-center">
+                        <span
+                          className={`inline-block font-bold px-2 py-1 rounded text-xs ${
+                            row.count < 0
+                              ? "bg-red-600 text-red-100"
+                              : "bg-green-600 text-green-100"
+                          }`}
+                        >
+                          {row.count > 0 ? "↑" : "↓"}{" "}
+                          {Math.abs(row.count).toFixed(0)}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="flex gap-2 justify-end">
+                          {row.levels.map((lvl: number, j: number) => (
+                            <span
+                              key={j}
+                              className="text-gray-300 text-xs px-2 py-1 bg-gray-700/50 rounded"
+                            >
+                              {lvl.toFixed(2)}
+                            </span>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </>
         )}
