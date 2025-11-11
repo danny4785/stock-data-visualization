@@ -309,28 +309,23 @@ export default function Home() {
                     className="border border-gray-700 rounded-lg overflow-hidden bg-gray-800/20 hover:bg-gray-800/40 transition-colors"
                   >
                     <div className="grid grid-cols-12 gap-4 p-4 items-center border-b border-gray-700">
-                      <div className="col-span-3">
+                      <div className="col-span-6">
                         <span className="font-bold text-cyan-300 text-sm">
                           {row.symbol}
                         </span>
                       </div>
-                      <div className="col-span-3">
+                      <div className="col-span-6 flex justify-end">
                         <span className="text-gray-300 text-sm">
                           {row.timeframe}
-                        </span>
-                      </div>
-                      <div className="col-span-6">
-                        <span className="text-gray-400 text-xs">
-                          Messages: {row.items.length}/{maxMessages}
                         </span>
                       </div>
                     </div>
 
                     <div className="bg-gray-900/40 pt-4 pb-2">
-                      <ResponsiveContainer width="100%" height={400}>
+                      <ResponsiveContainer width="100%" height={420}>
                         <ComposedChart
                           data={chartData}
-                          margin={{ top: 50, right: 20, left: 0, bottom: 50 }}
+                          margin={{ top: 0, right: 20, left: 0, bottom: 8 }}
                           style={{ minHeight: 220 }}
                         >
                           <CartesianGrid
