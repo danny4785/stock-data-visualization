@@ -236,9 +236,8 @@ export default function Home() {
           </div>
         ) : data.length === 0 ? (
           <div className="text-center py-16 bg-gray-800/30 rounded-lg border border-gray-700">
-            <p className="text-gray-400">Waiting for latest email...</p>
-            <p className="text-xs text-gray-500 mt-3">
-              Display updates every 5s
+            <p className="text-gray-400">
+              Copy and Paste into Conversation with ESTrendBoxAI:
             </p>
           </div>
         ) : (
