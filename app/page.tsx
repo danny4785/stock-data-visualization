@@ -295,12 +295,13 @@ export default function Home() {
                   d.bullboxlower,
                   d.bearboxupper,
                   d.bearboxlower,
+                  d.count,
                 ]);
                 const minValue = Math.min(...allValues);
                 const maxValue = Math.max(...allValues);
                 const dataRange = maxValue - minValue;
                 const padding = dataRange / 8;
-                const yAxisMin = minValue - 2 * padding;
+                const yAxisMin = minValue - padding;
                 const yAxisMax = maxValue + padding;
 
                 return (
@@ -339,14 +340,14 @@ export default function Home() {
                             orientation="top"
                             xAxisId="date"
                           />
-                          <XAxis
+                          {/* <XAxis
                             dataKey="count"
                             tick={{ fill: "#9CA3AF", fontSize: 10 }}
                             height={40}
                             orientation="bottom"
                             tickFormatter={(value) => value.toFixed(0)}
                             xAxisId="count"
-                          />
+                          /> */}
                           <YAxis
                             tick={{ fill: "#9CA3AF", fontSize: 10 }}
                             width={60}
@@ -454,6 +455,7 @@ export default function Home() {
                                 { label: "Bull Box Lower", color: "#16A34A" },
                                 { label: "Bear Box Upper", color: "#DC2626" },
                                 { label: "Bear Box Lower", color: "#DC2626" },
+                                { label: "Count", color: "#22D3EE" },
                               ];
                               return (
                                 <div
@@ -539,6 +541,14 @@ export default function Home() {
                             strokeWidth={2}
                             dot={false}
                             name="Bull Box Lower"
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="count"
+                            stroke="#22D3EE"
+                            strokeWidth={2}
+                            dot={false}
+                            name="UltraCounts"
                           />
 
                           {/* Price line */}
