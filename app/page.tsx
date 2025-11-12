@@ -241,7 +241,16 @@ export default function Home() {
             <div className="mt-5 mb-5 pt-6 border-t border-gray-700">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-lg font-semibold text-gray-300">
-                  Latest Email Data
+                  Please copy and paste this data in the{" "}
+                  <a
+                    href="https://chatgpt.com/g/g-68e3f5a7f8588191b7a5e48a4965b65f-estrendboxai"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-cyan-400 hover:text-cyan-300 underline"
+                  >
+                    ESTrendBoxAI
+                  </a>{" "}
+                  conversation:
                 </h2>
                 <button
                   onClick={copyRawData}
@@ -459,13 +468,6 @@ export default function Home() {
                             }}
                           />
 
-                          {/* <Legend
-                            wrapperStyle={{
-                              paddingTop: "5px",
-                              paddingBottom: "5px",
-                            }}
-                            iconType="line"
-                          /> */}
                           <Line
                             type="monotone"
                             dataKey="bullboxupper"
