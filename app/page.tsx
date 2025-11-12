@@ -426,58 +426,6 @@ export default function Home() {
                               return null;
                             }}
                           />
-                          <Legend
-                            content={({ payload }) => {
-                              const legendItems = [
-                                { label: "Bull Box Upper", color: "#16A34A" },
-                                { label: "Bull Box Lower", color: "#16A34A" },
-                                { label: "Bear Box Upper", color: "#DC2626" },
-                                { label: "Bear Box Lower", color: "#DC2626" },
-                              ];
-                              return (
-                                <div
-                                  style={{
-                                    display: "flex",
-                                    justifyContent: "center",
-                                    gap: "20px",
-                                    padding: "12px 8px 8px 8px",
-                                    flexWrap: "wrap",
-                                  }}
-                                >
-                                  {legendItems.map((item) => {
-                                    return (
-                                      <div
-                                        key={item.label}
-                                        style={{
-                                          display: "flex",
-                                          alignItems: "center",
-                                          gap: "6px",
-                                          fontSize: "11px",
-                                        }}
-                                      >
-                                        <div
-                                          style={{
-                                            width: "16px",
-                                            height: "2px",
-                                            backgroundColor: item.color,
-                                            borderRadius: "1px",
-                                          }}
-                                        />
-                                        <span
-                                          style={{
-                                            color: "#D1D5DB",
-                                            fontWeight: 500,
-                                          }}
-                                        >
-                                          {item.label}
-                                        </span>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              );
-                            }}
-                          />
 
                           {/* <Legend
                             wrapperStyle={{
@@ -548,34 +496,6 @@ export default function Home() {
                         </ComposedChart>
                       </ResponsiveContainer>
                     </div>
-
-                    {/* Bull Box Values at bottom of chart container */}
-                    {chartData.length > 0 && (
-                      <div className="p-4 border-t border-gray-700 bg-gray-800/30">
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="text-center">
-                            <div className="text-xs text-gray-400 mb-1">
-                              Bull Box Upper
-                            </div>
-                            <div className="text-lg font-bold text-green-400">
-                              {chartData[
-                                chartData.length - 1
-                              ]?.bullboxupper?.toFixed(2) || "N/A"}
-                            </div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-xs text-gray-400 mb-1">
-                              Bull Box Lower
-                            </div>
-                            <div className="text-lg font-bold text-green-400">
-                              {chartData[
-                                chartData.length - 1
-                              ]?.bullboxlower?.toFixed(2) || "N/A"}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 );
               })}
