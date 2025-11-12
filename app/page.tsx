@@ -278,8 +278,6 @@ export default function Home() {
 
                 const allValues = chartData.flatMap((d) => [
                   d.price,
-                  d.bullboxupper,
-                  d.bullboxlower,
                   d.bearboxupper,
                   d.bearboxlower,
                   d.count,
@@ -406,7 +404,9 @@ export default function Home() {
                                       {payload.map((entry, index) => {
                                         if (
                                           entry.dataKey === "count" ||
-                                          entry.dataKey === "price"
+                                          entry.dataKey === "price" ||
+                                          entry.dataKey === "bullboxupper" ||
+                                          entry.dataKey === "bullboxlower"
                                         ) {
                                           return null;
                                         }
@@ -438,8 +438,6 @@ export default function Home() {
                           <Legend
                             content={({ payload }) => {
                               const legendItems = [
-                                { label: "Bull Box Upper", color: "#16A34A" },
-                                { label: "Bull Box Lower", color: "#16A34A" },
                                 { label: "Bear Box Upper", color: "#DC2626" },
                                 { label: "Bear Box Lower", color: "#DC2626" },
                                 { label: "Count", color: "#22D3EE" },
@@ -512,23 +510,6 @@ export default function Home() {
                             dot={false}
                             name="Bear Box Lower"
                           />
-
-                          <Line
-                            type="monotone"
-                            dataKey="bullboxupper"
-                            stroke="#16A34A"
-                            strokeWidth={2}
-                            dot={false}
-                            name="Bull Box Upper"
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey="bullboxlower"
-                            stroke="#16A34A"
-                            strokeWidth={2}
-                            dot={false}
-                            name="Bull Box Lower"
-                          />
                           <Line
                             type="monotone"
                             dataKey="count"
@@ -567,6 +548,34 @@ export default function Home() {
                         </ComposedChart>
                       </ResponsiveContainer>
                     </div>
+
+                    {/* Bull Box Values at bottom of chart container */}
+                    {chartData.length > 0 && (
+                      <div className="p-4 border-t border-gray-700 bg-gray-800/30">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="text-center">
+                            <div className="text-xs text-gray-400 mb-1">
+                              Bull Box Upper
+                            </div>
+                            <div className="text-lg font-bold text-green-400">
+                              {chartData[
+                                chartData.length - 1
+                              ]?.bullboxupper?.toFixed(2) || "N/A"}
+                            </div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-xs text-gray-400 mb-1">
+                              Bull Box Lower
+                            </div>
+                            <div className="text-lg font-bold text-green-400">
+                              {chartData[
+                                chartData.length - 1
+                              ]?.bullboxlower?.toFixed(2) || "N/A"}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
