@@ -86,6 +86,7 @@ export default function Home() {
     []
   );
   const seenMessageIdsRef = useRef<Set<string>>(new Set());
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [maxMessages, setMaxMessages] = useState<number>(10);
@@ -186,6 +187,14 @@ export default function Home() {
     );
   }, [maxMessages]);
 
+  // Auto-resize textarea based on content
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [latestMessageData]);
+
   const copyRawData = async () => {
     const rawText = generateRawMatrix(latestMessageData);
     await navigator.clipboard.writeText(rawText);
@@ -246,9 +255,10 @@ export default function Home() {
                 </button>
               </div>
               <textarea
+                ref={textareaRef}
                 readOnly
                 value={generateRawMatrix(latestMessageData)}
-                className="w-full h-40 bg-gray-800 text-gray-300 p-4 rounded border border-gray-700 font-mono text-xs resize-none"
+                className="w-full min-h-20 bg-gray-800 text-gray-300 p-4 rounded border border-gray-700 font-mono text-xs resize-none overflow-hidden"
               />
             </div>
 
