@@ -9,7 +9,6 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
   ComposedChart,
 } from "recharts";
 
@@ -252,6 +251,29 @@ export default function Home() {
                 className="w-full h-40 bg-gray-800 text-gray-300 p-4 rounded border border-gray-700 font-mono text-xs resize-none"
               />
             </div>
+
+            {/* Single Legend for all charts */}
+            <div className="mb-6 flex justify-center">
+              <div className="flex gap-6 flex-wrap justify-center p-4 bg-gray-800/50 rounded-lg border border-gray-700">
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-0.5 bg-green-500"></div>
+                  <span className="text-sm text-gray-300">Bull Box Upper</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-0.5 bg-green-500"></div>
+                  <span className="text-sm text-gray-300">Bull Box Lower</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-0.5 bg-red-600"></div>
+                  <span className="text-sm text-gray-300">Bear Box Upper</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-4 h-0.5 bg-red-600"></div>
+                  <span className="text-sm text-gray-300">Bear Box Lower</span>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4 mb-10">
               {data.map((row: SymbolTimeframeData, i: number) => {
                 const chartData = row.items.map((item) => {
