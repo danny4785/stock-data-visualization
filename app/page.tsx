@@ -278,6 +278,8 @@ export default function Home() {
 
                 const allValues = chartData.flatMap((d) => [
                   d.price,
+                  d.bullboxupper,
+                  d.bullboxlower,
                   d.bearboxupper,
                   d.bearboxlower,
                 ]);
@@ -395,9 +397,7 @@ export default function Home() {
                                       {payload.map((entry, index) => {
                                         if (
                                           entry.dataKey === "count" ||
-                                          entry.dataKey === "price" ||
-                                          entry.dataKey === "bullboxupper" ||
-                                          entry.dataKey === "bullboxlower"
+                                          entry.dataKey === "price"
                                         ) {
                                           return null;
                                         }
@@ -429,6 +429,8 @@ export default function Home() {
                           <Legend
                             content={({ payload }) => {
                               const legendItems = [
+                                { label: "Bull Box Upper", color: "#16A34A" },
+                                { label: "Bull Box Lower", color: "#16A34A" },
                                 { label: "Bear Box Upper", color: "#DC2626" },
                                 { label: "Bear Box Lower", color: "#DC2626" },
                               ];
@@ -484,6 +486,22 @@ export default function Home() {
                             }}
                             iconType="line"
                           /> */}
+                          <Line
+                            type="monotone"
+                            dataKey="bullboxupper"
+                            stroke="#16A34A"
+                            strokeWidth={2}
+                            dot={false}
+                            name="Bull Box Upper"
+                          />
+                          <Line
+                            type="monotone"
+                            dataKey="bullboxlower"
+                            stroke="#16A34A"
+                            strokeWidth={2}
+                            dot={false}
+                            name="Bull Box Lower"
+                          />
                           <Line
                             type="monotone"
                             dataKey="bearboxupper"
