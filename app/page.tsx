@@ -280,7 +280,6 @@ export default function Home() {
                   d.price,
                   d.bearboxupper,
                   d.bearboxlower,
-                  d.count,
                 ]);
                 const minValue = Math.min(...allValues);
                 const maxValue = Math.max(...allValues);
@@ -391,14 +390,6 @@ export default function Home() {
                                           margin: "2px 0",
                                         }}
                                       >
-                                        Count: {data.count?.toFixed(2) || "N/A"}
-                                      </p>
-                                      <p
-                                        style={{
-                                          color: "#22D3EE",
-                                          margin: "2px 0",
-                                        }}
-                                      >
                                         Price: {data.price?.toFixed(2) || "N/A"}
                                       </p>
                                       {payload.map((entry, index) => {
@@ -440,7 +431,6 @@ export default function Home() {
                               const legendItems = [
                                 { label: "Bear Box Upper", color: "#DC2626" },
                                 { label: "Bear Box Lower", color: "#DC2626" },
-                                { label: "Count", color: "#22D3EE" },
                               ];
                               return (
                                 <div
@@ -509,14 +499,6 @@ export default function Home() {
                             strokeWidth={2}
                             dot={false}
                             name="Bear Box Lower"
-                          />
-                          <Line
-                            type="monotone"
-                            dataKey="count"
-                            stroke="#22D3EE"
-                            strokeWidth={2}
-                            dot={false}
-                            name="UltraCounts"
                           />
 
                           {/* Price line */}
